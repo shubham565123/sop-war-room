@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sop-war-room"
+version = "0.1.0"
+description = "Multi-agent S&OP negotiation environment for OpenEnv"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+authors = [
+    { name = "Shubham Yeole" }
+]
+dependencies = [
+    "openenv-core>=0.2.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.0.0",
+    "requests>=2.31.0",
+    "openai>=1.0.0",
+]
+
+[project.scripts]
+server = "server.app:main"
+
+[project.urls]
+Homepage = "https://huggingface.co/spaces/shubhamyeole565/sop-war-room"
+
+[tool.setuptools]
+py-modules = ["models", "stakeholders"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["server*"]

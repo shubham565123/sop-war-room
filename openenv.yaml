@@ -1,0 +1,41 @@
+name: sop-war-room
+version: 0.1.0
+description: >
+  Multi-agent S&OP (Sales & Operations Planning) negotiation environment.
+  A Consensus Planner LLM must negotiate with 3 rule-based stakeholder agents
+  (Demand, Supply, Finance) with hidden competing preferences, extract their
+  targets over 4 turns, and commit to a balanced forecast. Rewarded on format
+  compliance, forecast accuracy vs ground truth, consensus quality, information
+  extraction, and negotiation efficiency.
+
+author: shubhamyeole565
+license: apache-2.0
+
+runtime:
+  type: docker
+  dockerfile: Dockerfile
+  port: 8000
+
+tasks:
+  - name: task_easy
+    difficulty: easy
+    scenario_id: easy_aligned
+    description: >
+      Mature detergent SKU, stakeholders mostly aligned (demand +8%, supply -2%,
+      finance 0%). Tests basic multi-turn coherence and format compliance.
+
+  - name: task_medium
+    difficulty: medium
+    scenario_id: medium_split
+    description: >
+      Seasonal beverage Q4 forecast with split stakeholder positions
+      (demand +18%, supply -4%, finance 0%). Tests genuine negotiation and
+      trade-off reasoning.
+
+  - name: task_hard
+    difficulty: hard
+    scenario_id: hard_divergent
+    description: >
+      New skincare launch, high uncertainty, divergent stakeholder positions
+      (demand +25%, supply -8%, finance 0%). Tests deep preference extraction
+      and nuanced compromise under ambiguity.

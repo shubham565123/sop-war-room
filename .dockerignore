@@ -1,0 +1,12 @@
+.git
+.venv
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache
+.DS_Store
+client.py
+inference.py
+mock_llm.py
+README.md
