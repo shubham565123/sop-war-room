@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from models import WarRoomAction, WarRoomObservation
 from server.environment import WarRoomEnvironment
-from server.grader import grade_episode
+from server.grader import grade_episode, compute_breakdown
 
 
 class ResetRequest(BaseModel):
@@ -43,11 +43,10 @@ def create_app() -> FastAPI:
     @app.post("/step", response_model=StepResponse)
     def step(req: StepRequest):
         obs, _reward, done, info = env.step(req.action)
-        # Grade only on episode end
         reward = 0.0
         if done:
             reward = grade_episode(env.state)
-            info["reward_breakdown"] = info.get("reward_breakdown", {})
+            info["reward_breakdown"] = compute_breakdown(env.state)
         return StepResponse(observation=obs, reward=reward, done=done, info=info)
 
     return app
