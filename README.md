@@ -10,39 +10,58 @@ license: apache-2.0
 
 # S&OP War Room
 
-**A multi-agent Sales & Operations Planning negotiation environment for OpenEnv.**
+![Status](https://img.shields.io/badge/status-active_development-green)
+![OpenEnv](https://img.shields.io/badge/OpenEnv-v0.1.0-blue)
+![License](https://img.shields.io/badge/license-Apache--2.0-lightgrey)
+![Python](https://img.shields.io/badge/python-3.11+-blue)
 
-Built for the Meta × PyTorch × Hugging Face OpenEnv Hackathon India — Grand Finale, April 25–26, 2026.
-Addresses **Theme 1: Multi-Agent Interactions** — single-agent RL in a multi-agent environment.
+A reinforcement-learning environment for training LLMs on the real enterprise task of **Sales & Operations Planning (S&OP)** — a monthly cross-functional meeting where sales, supply, and finance must agree on a single forecast despite hidden, competing preferences. Built on [Meta's OpenEnv](https://github.com/meta-pytorch/OpenEnv) framework.
+
+This environment isolates the *negotiation dynamic* at the heart of S&OP, not a full Anaplan planning cycle. The 4-turn structure focuses training on one well-scoped capability: extracting hidden preferences from stakeholders with competing agendas and committing to a balanced forecast under pressure.
 
 ---
 
 ## Links & Artifacts
 
-> This section is progressively filled in across the onsite hackathon. If a link is a placeholder, that artifact is in active development.
-
 | Artifact | Link |
 |---|---|
 | Hugging Face Space (live environment) | _to be added after deploy_ |
 | GitHub repository | https://github.com/shubham565123/sop-war-room |
-| Training notebook (Colab, TRL + Unsloth + Qwen2.5-3B GRPO) | _to be added after Day 1 training run_ |
-| Reward / loss plots | `plots/` (to be committed after training) |
-| Blog post (HF Hub or in-repo) | _to be added (see `blog/post.md`)_ |
-| Demo video (<2 min, YouTube) | _optional — to be added if produced_ |
+| Training notebook (Colab, TRL + Unsloth + Qwen2.5-3B GRPO) | _to be added after training run_ |
+| Reward / loss plots | `plots/` (populated after training) |
+| Blog post (Hugging Face Hub or in-repo) | _to be added (see `blog/post.md`)_ |
 
 ---
 
-## What it is
+## Why S&OP
 
-A Consensus Planner LLM sits at a simulated S&OP meeting with three rule-based stakeholder agents, each holding a hidden target forecast they want adopted:
+S&OP is the monthly cross-functional business process every consumer-goods company runs. A room full of functional owners with incompatible objectives — marketing wants aggressive growth, operations wants feasibility, finance wants budget adherence — must leave with one number everyone will be held accountable to.
 
-- **Demand Planner** — market-facing, pushes higher
-- **Supply Planner** — capacity-facing, pushes lower
-- **Finance** — budget-anchored, conservative
+This is an ideal domain for LLM agent research for three reasons:
 
-Over 4 turns — 2 stakeholder rounds and 2 LLM turns — the Consensus Planner must extract preferences from templated stakeholder messages, probe with a clarifying question or preliminary number, and commit to a final forecast that balances all three positions while staying grounded in procedurally generated true demand.
+1. **Structured disagreement with hidden information.** Each stakeholder holds a private preference and reveals it only through templated business language. The agent must infer, not be told.
+2. **Forced decision under conflicting pressure.** There is no "ask for more time" escape. A number must be committed.
+3. **Measurable ground truth.** Procedurally generated true demand provides unambiguous reward signal for forecast accuracy, while consensus and extraction scoring capture the social dimension.
 
-Turn structure is asymmetric:
+To date, no supply-chain or planning environment exists in the OpenEnv Hub. This environment fills that gap and is grounded in the author's consulting experience with Anaplan-based S&OP implementations at EY.
+
+---
+
+## Environment design
+
+### What the LLM sees
+
+A Consensus Planner LLM sits at a simulated S&OP meeting with three rule-based stakeholder agents:
+
+- **Demand Planner** — market-facing, hidden preference biased upward
+- **Supply Planner** — capacity-facing, hidden preference biased downward
+- **Finance** — budget-anchored, hidden preference near baseline
+
+Each stakeholder holds a hidden target percentage. They reveal it only indirectly through templated messages that leak information gradually.
+
+### Turn structure
+
+Asymmetric — the LLM speaks twice, stakeholders speak six times. Eight messages per episode.
 
 | Turn | Who | What |
 |---|---|---|
@@ -51,23 +70,21 @@ Turn structure is asymmetric:
 | 3 | Stakeholders | Each reacts to the LLM probe, revealing sharper signals. |
 | 4 | **LLM (commit)** | Must emit `FINAL FORECAST: <number>` with justification referencing each stakeholder. |
 
----
-
-## Reward structure
+### Reward structure
 
 Five rubrics composed with a format gate:
 
 | Rubric | Weight | What it measures |
 |---|---|---|
-| **Format (gate)** | — | Turn 4 must contain `FINAL FORECAST: <number>`. Failing this zeros the episode. |
+| **Format (gate)** | — | Turn 4 must contain `FINAL FORECAST: <number>`. Failing zeros the episode. |
 | **Accuracy** | 0.40 | Commit vs. procedurally-generated true demand. Full credit at <=1% error, zero at >=8%. |
 | **Consensus** | 0.30 | Commit vs. average of the 3 stakeholder targets. Full credit at <=1%, zero at >=6%. |
 | **Extraction** | 0.20 | Did the final justification reference each stakeholder target (within 5%)? |
 | **Efficiency** | 0.10 | Did turn 2 contain a genuine probe (question + number beats either beats neither)? |
 
-Final reward = `format_gate * sum(weight * rubric_score)`, clamped to [0.01, 0.99].
+Final reward = `format_gate * sum(weight * rubric_score)`, clamped to `[0.01, 0.99]`.
 
-The rubrics produce clean gradient signal — hand-tested on three representative episodes:
+Hand-tested on three representative policies:
 
 | Behavior | Reward |
 |---|---|
@@ -75,11 +92,11 @@ The rubrics produce clean gradient signal — hand-tested on three representativ
 | Lazy (minimal probe, commits at baseline, ignores stakeholders) | ~0.34 |
 | Format fail (no FINAL FORECAST marker) | 0.01 |
 
----
+Three orders of magnitude between failure and good behavior — clean gradient signal for GRPO.
 
-## Tasks
+### Tasks
 
-Three difficulty levels, differing in stakeholder preference spread and noise:
+Three difficulty levels, varying in stakeholder preference spread and ground-truth noise:
 
 | Task | Baseline | Prefs (Demand/Supply/Finance) | Noise |
 |---|---|---|---|
@@ -91,23 +108,15 @@ Hard scenarios require genuine trade-off reasoning — naive averaging is insuff
 
 ---
 
-## Why this domain
-
-S&OP is the monthly cross-functional business process that every consumer-goods company runs. It is exactly where AI agents need to land: a real-world task with structured disagreement, hidden preferences, and a forced decision under uncertainty. Unilever's real S&OP implementation drove a 20% reduction in supply chain waste — this environment simulates the mechanism behind outcomes like that.
-
-No supply-chain environment currently exists in the OpenEnv Hub. This one fills that gap and is grounded in the author's direct consulting experience with Anaplan-based S&OP at EY.
-
----
-
-## Training plan (onsite, April 25–26)
+## Training
 
 - **Model:** Qwen2.5-3B-Instruct, 4-bit via Unsloth
-- **Algorithm:** GRPO (group-relative policy optimization) via HF TRL
+- **Algorithm:** GRPO (group-relative policy optimization) via Hugging Face TRL
 - **Loop:** `rollout_func` pattern — env drives the 4-turn episode, TRL handles policy updates
-- **Baseline:** untrained Qwen2.5-3B on same 3 tasks, same seeds, reward captured
-- **Success metric:** trained agent reward on `task_hard` exceeds baseline by a visible margin, with monotonic improvement on the training reward curve
+- **Baseline:** untrained Qwen2.5-3B on same 3 tasks, same seeds
+- **Target:** trained agent reward on `task_hard` exceeds baseline by a visible margin, with monotonic improvement on the training reward curve
 
-Plots, notebook, and final commentary will be committed to the repo during the onsite.
+Notebook, plots, and commentary are committed to the repo as training proceeds.
 
 ---
 
@@ -120,13 +129,15 @@ docker build -t sop-war-room:latest .
 docker run --rm -p 8000:8000 sop-war-room:latest
 ```
 
-Validate (in another terminal):
+Validate against the OpenEnv v0.1.0 contract:
 
 ```
 openenv validate --url http://localhost:8000
 ```
 
-Inference against a running env:
+Expected: `passed: True | 6 / 6` on all required criteria.
+
+Run an LLM against the environment:
 
 ```
 export API_BASE_URL=https://router.huggingface.co/v1
@@ -140,13 +151,13 @@ python inference.py
 
 ## OpenEnv contract compliance
 
-Runtime validation passes 6/6 required criteria against `openenv-core` standard v0.1.0:
+Runtime validation passes all required criteria against `openenv-core` standard v0.1.0:
 
 - `openapi_version_available`
 - `health_endpoint`
 - `metadata_endpoint`
 - `schema_endpoint`
-- `mcp_endpoint` (MCP tool names follow the rules — no reserved names used)
+- `mcp_endpoint` (MCP tool names are non-reserved)
 - `mode_endpoint_consistency` (`/reset`, `/step`, `/state`)
 
 ---
@@ -164,8 +175,8 @@ sop-war-room/
 |   |-- environment.py     # Episode engine - turn schedule, scenarios
 |   +-- grader.py          # 5-rubric scorer with format gate
 |-- blog/
-|   +-- post.md            # Hugging Face blog post (in progress)
-|-- plots/                 # Training reward/loss plots (populated onsite)
+|   +-- post.md            # Write-up on design and results
+|-- plots/                 # Training reward/loss plots
 |-- openenv.yaml           # Env manifest (3 tasks)
 |-- Dockerfile
 |-- pyproject.toml         # openenv-core + deps, `server` entrypoint
@@ -174,22 +185,41 @@ sop-war-room/
 
 ---
 
-## Future work (v2)
+## Roadmap
 
-- Stochastic stakeholder personalities (bluffing, priority drift)
-- Multi-period episodes (rolling 18-month horizon, real S&OP cadence)
-- Dashboard for replaying and grading human vs. agent transcripts
-- Hooking to real Anaplan S&OP models for industrial-scale training data
+- Stochastic stakeholder personalities (bluffing, priority drift, coalitional behavior)
+- Multi-period episodes on a rolling 18-month horizon, matching real S&OP cadence
+- SKU-level negotiation instead of single-aggregate forecasts
+- Integration with real Anaplan model exports for industrial-scale training data
+- Dashboard for side-by-side replay of human vs. agent transcripts
+
+Contributions and issues are welcome.
 
 ---
 
 ## Author
 
-Shubham Yeole — Anaplan / S&OP consultant (EY), currently transitioning to ML/AI via Scaler DSML.
+**Shubham Yeole** — S&OP and supply-chain planning consultant with deep experience in Anaplan-based enterprise forecasting, now working at the intersection of planning systems and LLM agents. This environment draws directly on patterns observed across live S&OP implementations.
 
-- GitHub: @shubham565123
-- Hugging Face: @shubhamyeole565
+- GitHub: [@shubham565123](https://github.com/shubham565123)
+- Hugging Face: [@shubhamyeole565](https://huggingface.co/shubhamyeole565)
+
+---
+
+## Origins
+
+This environment was initially developed for the Meta × PyTorch × Hugging Face OpenEnv Hackathon (India, 2026), Theme 1 (Multi-Agent Interactions). It has since evolved into an ongoing exploration of reinforcement learning applied to enterprise planning workflows.
 
 ## License
 
 Apache-2.0
+
+## Citation
+
+If you use this environment in your work, please cite it using the metadata in `CITATION.cff`, or:
+
+```
+Yeole, Shubham. (2026). S&OP War Room: A multi-agent reinforcement learning
+environment for training LLMs on Sales & Operations Planning negotiation.
+https://github.com/shubham565123/sop-war-room
+```

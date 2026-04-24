@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this environment, please cite it as below."
+title: "S&OP War Room: A multi-agent reinforcement learning environment for training LLMs on Sales & Operations Planning negotiation"
+authors:
+  - family-names: "Yeole"
+    given-names: "Shubham"
+    affiliation: "Independent"
+date-released: 2026-04-26
+version: "0.1.0"
+url: "https://github.com/shubham565123/sop-war-room"
+repository-code: "https://github.com/shubham565123/sop-war-room"
+license: Apache-2.0
+keywords:
+  - reinforcement-learning
+  - large-language-models
+  - multi-agent-systems
+  - openenv
+  - supply-chain
+  - sales-operations-planning
+  - llm-agents
