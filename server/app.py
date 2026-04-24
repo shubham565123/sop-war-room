@@ -114,9 +114,9 @@ def create_app() -> FastAPI:
                 "id": rpc_id,
                 "result": {
                     "tools": [
-                        {"name": "reset", "description": "Start an episode"},
-                        {"name": "step", "description": "Advance the episode"},
-                        {"name": "state", "description": "Inspect current state"},
+                        {"name": "start_meeting", "description": "Start a new S&OP meeting episode"},
+                        {"name": "submit_message", "description": "Submit the Consensus Planner message for the current turn"},
+                        {"name": "get_meeting_status", "description": "Inspect current meeting state"},
                     ]
                 },
             }

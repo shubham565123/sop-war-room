@@ -12,8 +12,23 @@ license: apache-2.0
 
 **A multi-agent Sales & Operations Planning negotiation environment for OpenEnv.**
 
-Built for the Meta × PyTorch × Hugging Face OpenEnv Hackathon India — Grand Finale, April 2026.
+Built for the Meta × PyTorch × Hugging Face OpenEnv Hackathon India — Grand Finale, April 25–26, 2026.
 Addresses **Theme 1: Multi-Agent Interactions** — single-agent RL in a multi-agent environment.
+
+---
+
+## Links & Artifacts
+
+> This section is progressively filled in across the onsite hackathon. If a link is a placeholder, that artifact is in active development.
+
+| Artifact | Link |
+|---|---|
+| Hugging Face Space (live environment) | _to be added after deploy_ |
+| GitHub repository | https://github.com/shubham565123/sop-war-room |
+| Training notebook (Colab, TRL + Unsloth + Qwen2.5-3B GRPO) | _to be added after Day 1 training run_ |
+| Reward / loss plots | `plots/` (to be committed after training) |
+| Blog post (HF Hub or in-repo) | _to be added (see `blog/post.md`)_ |
+| Demo video (<2 min, YouTube) | _optional — to be added if produced_ |
 
 ---
 
@@ -84,6 +99,18 @@ No supply-chain environment currently exists in the OpenEnv Hub. This one fills 
 
 ---
 
+## Training plan (onsite, April 25–26)
+
+- **Model:** Qwen2.5-3B-Instruct, 4-bit via Unsloth
+- **Algorithm:** GRPO (group-relative policy optimization) via HF TRL
+- **Loop:** `rollout_func` pattern — env drives the 4-turn episode, TRL handles policy updates
+- **Baseline:** untrained Qwen2.5-3B on same 3 tasks, same seeds, reward captured
+- **Success metric:** trained agent reward on `task_hard` exceeds baseline by a visible margin, with monotonic improvement on the training reward curve
+
+Plots, notebook, and final commentary will be committed to the repo during the onsite.
+
+---
+
 ## Running locally
 
 Build and run:
@@ -119,7 +146,7 @@ Runtime validation passes 6/6 required criteria against `openenv-core` standard 
 - `health_endpoint`
 - `metadata_endpoint`
 - `schema_endpoint`
-- `mcp_endpoint`
+- `mcp_endpoint` (MCP tool names follow the rules — no reserved names used)
 - `mode_endpoint_consistency` (`/reset`, `/step`, `/state`)
 
 ---
@@ -136,6 +163,9 @@ sop-war-room/
 |   |-- app.py             # FastAPI: health, metadata, schema, mcp, reset, step, state
 |   |-- environment.py     # Episode engine - turn schedule, scenarios
 |   +-- grader.py          # 5-rubric scorer with format gate
+|-- blog/
+|   +-- post.md            # Hugging Face blog post (in progress)
+|-- plots/                 # Training reward/loss plots (populated onsite)
 |-- openenv.yaml           # Env manifest (3 tasks)
 |-- Dockerfile
 |-- pyproject.toml         # openenv-core + deps, `server` entrypoint
@@ -146,10 +176,10 @@ sop-war-room/
 
 ## Future work (v2)
 
-- GRPO training loop (TRL + Unsloth + Qwen2.5-3B) — planned for onsite April 25-26
 - Stochastic stakeholder personalities (bluffing, priority drift)
 - Multi-period episodes (rolling 18-month horizon, real S&OP cadence)
 - Dashboard for replaying and grading human vs. agent transcripts
+- Hooking to real Anaplan S&OP models for industrial-scale training data
 
 ---
 
