@@ -34,6 +34,7 @@ ENV_BASE_URL = os.getenv("ENV_BASE_URL", "http://localhost:8000").rstrip("/")
 TEMPERATURE = 0.2
 MAX_TOKENS = 200
 SCENARIOS = ["easy_aligned", "medium_split", "hard_divergent"]
+SEEDS = [int(s) for s in os.getenv("SEEDS", "42").split(",")]
 
 
 SYSTEM_PROMPT = textwrap.dedent("""
@@ -163,17 +164,48 @@ def main() -> None:
         print(f"[ERROR] Env not reachable at {ENV_BASE_URL}: {exc}", file=sys.stderr)
         sys.exit(1)
 
+    import json, statistics
+    all_results = []
+    n_total = len(SCENARIOS) * len(SEEDS)
+    n_done = 0
     for scenario_id in SCENARIOS:
-        result = run_episode(client, scenario_id, seed=42)
-        # Emit one [START]...[END] block per task — matches Round 1 validator pattern
-        print(f"[START]")
-        print(f"task: {scenario_id}")
-        print(f"probe: {result['probe']}")
-        print(f"commit: {result['commit']}")
-        print(f"reward: {result['reward']:.4f}")
-        print(f"breakdown: {result['info'].get('reward_breakdown', {})}")
-        print(f"[END]")
-        print()
+        for seed in SEEDS:
+            n_done += 1
+            print(f"[{n_done}/{n_total}] {scenario_id} seed={seed}...", file=sys.stderr)
+            result = run_episode(client, scenario_id, seed=seed)
+            all_results.append({**result, "seed": seed})
+            # Emit [START]...[END] only for the first seed of each task,
+            # preserving the validator contract regardless of SEEDS setting.
+            if seed == SEEDS[0]:
+                print(f"[START]")
+                print(f"task: {scenario_id}")
+                print(f"probe: {result['probe']}")
+                print(f"commit: {result['commit']}")
+                print(f"reward: {result['reward']:.4f}")
+                print(f"breakdown: {result['info'].get('reward_breakdown', {})}")
+                print(f"[END]")
+                print()
+
+    # Multi-seed summary (only when SEEDS has more than one entry)
+    if len(SEEDS) > 1:
+        print("\n=== Multi-seed baseline summary ===", file=sys.stderr)
+        by_task = {}
+        for r in all_results:
+            by_task.setdefault(r['scenario_id'], []).append(r['reward'])
+        for task, rewards in by_task.items():
+            mean = statistics.mean(rewards)
+            std = statistics.stdev(rewards) if len(rewards) > 1 else 0.0
+            print(f"  {task}: mean={mean:.4f} std={std:.4f} n={len(rewards)}", file=sys.stderr)
+        all_rewards = [r['reward'] for r in all_results]
+        print(f"  OVERALL: mean={statistics.mean(all_rewards):.4f} std={statistics.stdev(all_rewards):.4f}", file=sys.stderr)
+        with open("baseline_results.json", "w") as f:
+            json.dump({
+                "model": MODEL_NAME,
+                "seeds": SEEDS,
+                "scenarios": SCENARIOS,
+                "results": all_results,
+            }, f, indent=2, default=str)
+        print(f"  -> saved {len(all_results)} episodes to baseline_results.json", file=sys.stderr)
 
 
 if __name__ == "__main__":
