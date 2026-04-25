@@ -28,7 +28,7 @@ This environment isolates the *negotiation dynamic* at the heart of S&OP, not a 
 
 | Artifact | Link |
 |---|---|
-| Hugging Face Space (live environment) | _to be added after deploy_ |
+| Hugging Face Space (live environment) | https://huggingface.co/spaces/shubhamyeole565/sop-war-room |
 | GitHub repository | https://github.com/shubham565123/sop-war-room |
 | Training notebook (Colab, TRL + Unsloth + Qwen2.5-3B GRPO) | _to be added after training run_ |
 | Reward / loss plots | `plots/` (populated after training) |
